@@ -1,0 +1,27 @@
+{
+  "name": "pet-adoption",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start-dev": "nodemon -r dotenv/config server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paulsmithkc/pet-adoption.git"
+  },
+  "keywords": [],
+  "author": "Paul Smith",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/paulsmithkc/pet-adoption/issues"
+  },
+  "homepage": "https://github.com/paulsmithkc/pet-adoption#readme",
+  "dependencies": {
+    "debug": "^4.3.2",
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1",
+    "nanoid": "^3.1.25"
+  }
+}
