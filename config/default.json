@@ -1,0 +1,10 @@
+{
+  "http": {
+    "host": "localhost", 
+    "port": 5000
+  },
+  "db": {
+    "url": "mongodb://localhost:27017",
+    "name": "pet-adoption"
+  }
+}

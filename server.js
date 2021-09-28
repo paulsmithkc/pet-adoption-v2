@@ -2,6 +2,8 @@ const debug = require('debug')('app:server');
 const debugError = require('debug')('app:error');
 const express = require('express');
 const { nanoid } = require('nanoid');
+const config = require('config');
+const dbModule = require('./database');
 
 // construct express app
 const app = express();
@@ -22,7 +24,8 @@ app.use((err, req, res, next) => {
 });
 
 // start listening for requests
-const port = process.env.PORT || 5001;
+const host = config.get('http.host');
+const port = config.get('http.port');
 app.listen(port, () => {
-  debug(`Server running at http://localhost:${port}`);
+  debug(`Server running at http://${host}:${port}`);
 });

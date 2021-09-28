@@ -1,0 +1,10 @@
+{
+  "http": {
+    "host": "HOSTNAME", 
+    "port": "PORT"
+  },
+  "db": {
+    "url": "DB_URL",
+    "name": "DB_NAME"
+  }
+}
