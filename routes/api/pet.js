@@ -4,12 +4,35 @@ const express = require('express');
 const { nanoid } = require('nanoid');
 const dbModule = require('../../database');
 const { newId } = require('../../database');
+const Joi = require('joi');
+const validId = require('../../middleware/validId');
+const validBody = require('../../middleware/validBody');
 
 // const petsArray = [
 //   { _id: '1', name: 'Fido', createdDate: new Date() },
 //   { _id: '2', name: 'Watson', createdDate: new Date() },
 //   { _id: '3', name: 'Loki', createdDate: new Date() },
 // ];
+
+const newPetSchema = Joi.object({
+  species: Joi.string()
+    .trim()
+    .min(1)
+    .pattern(/^[^0-9]+$/, 'not numbers')
+    .required(),
+  name: Joi.string().trim().min(1).required(),
+  age: Joi.number().integer().min(0).max(1000).required(),
+  gender: Joi.string().trim().length(1).required(),
+});
+const updatePetSchema = Joi.object({
+  species: Joi.string()
+    .trim()
+    .min(1)
+    .pattern(/^[^0-9]+$/, 'not numbers'),
+  name: Joi.string().trim().min(1),
+  age: Joi.number().integer().min(0).max(1000),
+  gender: Joi.string().trim().length(1),
+});
 
 // create a router
 const router = express.Router();
@@ -24,11 +47,9 @@ router.get('/list', async (req, res, next) => {
     next(err);
   }
 });
-router.get('/:petId', async (req, res, next) => {
+router.get('/:petId', validId('petId'), async (req, res, next) => {
   try {
-    const petId = newId(req.params.petId);
-    debug(`get pet ${petId}`);
-
+    const petId = req.petId;
     const pet = await dbModule.findPetById(petId);
     if (!pet) {
       res.status(404).json({ error: `Pet ${petId} not found.` });
@@ -39,36 +60,21 @@ router.get('/:petId', async (req, res, next) => {
     next(err);
   }
 });
-router.put('/new', async (req, res, next) => {
+router.put('/new', validBody(newPetSchema), async (req, res, next) => {
   try {
-    const pet = {
-      _id: newId(),
-      species: req.body.species,
-      name: req.body.name,
-      age: parseInt(req.body.age),
-      gender: req.body.gender,
-    };
+    const pet = req.body;
+    pet._id = newId();
     debug(`insert pet`, pet);
 
-    if (!pet.species) {
-      res.status(400).json({ error: 'Species required.' });
-    } else if (!pet.name) {
-      res.status(400).json({ error: 'Name required.' });
-    } else if (!pet.age) {
-      res.status(400).json({ error: 'Age required.' });
-    } else if (!pet.gender) {
-      res.status(400).json({ error: 'Gender required.' });
-    } else {
-      await dbModule.insertOnePet(pet);
-      res.json({ message: 'Pet inserted.' });
-    }
+    await dbModule.insertOnePet(pet);
+    res.json({ message: 'Pet inserted.' });
   } catch (err) {
     next(err);
   }
 });
-router.put('/:petId', async (req, res, next) => {
+router.put('/:petId', validId('petId'), validBody(updatePetSchema), async (req, res, next) => {
   try {
-    const petId = newId(req.params.petId);
+    const petId = req.petId;
     const update = req.body;
     debug(`update pet ${petId}`, update);
 
@@ -83,9 +89,9 @@ router.put('/:petId', async (req, res, next) => {
     next(err);
   }
 });
-router.delete('/:petId', async (req, res, next) => {
+router.delete('/:petId', validId('petId'), async (req, res, next) => {
   try {
-    const petId = newId(req.params.petId);
+    const petId = req.petId;
     debug(`delete pet ${petId}`);
 
     const pet = await dbModule.findPetById(petId);
