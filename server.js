@@ -5,6 +5,22 @@ const { nanoid } = require('nanoid');
 const config = require('config');
 const dbModule = require('./database');
 
+if (!config.get('db.url')) {
+  throw new Error('db.url not defined!');
+}
+if (!config.get('auth.secret')) {
+  throw new Error('auth.secret not defined!');
+}
+if (!config.get('auth.tokenExpiresIn')) {
+  throw new Error('auth.tokenExpiresIn not defined!');
+}
+if (!config.get('auth.cookieMaxAge')) {
+  throw new Error('auth.cookieMaxAge not defined!');
+}
+if (!config.get('auth.saltRounds')) {
+  throw new Error('auth.saltRounds not defined!');
+}
+
 // define custom objectId validator
 const Joi = require('joi');
 Joi.objectId = () => {
@@ -30,9 +46,12 @@ Joi.objectId = () => {
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
+app.use(require('cookie-parser')());
+app.use(require('./middleware/auth')());
 
 // define routes
 app.use('/api/pet', require('./routes/api/pet'));
+app.use('/api/user', require('./routes/api/user'));
 
 // handle errors
 app.use((req, res, next) => {

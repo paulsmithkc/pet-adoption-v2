@@ -6,5 +6,11 @@
   "db": {
     "url": "mongodb://localhost:27017",
     "name": "pet-adoption"
+  },
+  "auth": {
+    "secret": "",
+    "tokenExpiresIn": "24h",
+    "cookieMaxAge": 1200000,
+    "saltRounds": 10
   }
 }
