@@ -88,6 +88,11 @@ async function getUserByEmail(email) {
   return await db.collection('users').findOne({ email: {$eq: email} });
 }
 
+async function saveEdit(edit) {
+  const db = await connect();
+  return await db.collection('edits').insertOne(edit);
+}
+
 ping();
 
 module.exports = {
@@ -103,4 +108,5 @@ module.exports = {
   updateUser,
   getUserById,
   getUserByEmail,
+  saveEdit,
 };

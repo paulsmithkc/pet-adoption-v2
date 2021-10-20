@@ -13,6 +13,7 @@ const {
   updateUser,
   getUserById,
   getUserByEmail,
+  saveEdit,
 } = require('../../database');
 
 const registerSchema = Joi.object({
@@ -119,7 +120,7 @@ router.put('/me', validBody(updateSchema), async (req, res, next) => {
   // self-service update
   try {
     if (!req.auth) {
-      return res.status(400).json({ error: 'You must be logged in!' });
+      return res.status(401).json({ error: 'You must be logged in!' });
     }
 
     const userId = newId(req.auth._id);
@@ -129,9 +130,29 @@ router.put('/me', validBody(updateSchema), async (req, res, next) => {
       const saltRounds = parseInt(config.get('auth.saltRounds'));
       update.password = await bcrypt.hash(update.password, saltRounds);
     }
+    if (Object.keys(update).length > 0) {
+      update.lastUpdatedOn = new Date();
+      update.lastUpdatedBy = {
+        _id: req.auth._id,
+        email: req.auth.email,
+        fullName: req.auth.fullName,
+        role: req.auth.role,
+      };
+    }
 
     const dbResult = await updateUser(userId, update);
     debug('update me result:', dbResult);
+
+    const edit = {
+      timestamp: new Date(),
+      op: 'update',
+      col: 'users',
+      target: { userId },
+      update,
+      auth: req.auth,
+    };
+    await saveEdit(edit);
+    debug('edit saved');
 
     res.json({ message: 'User Updated!' });
 
