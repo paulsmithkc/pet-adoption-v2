@@ -167,6 +167,10 @@ router.put(
   async (req, res, next) => {
     // admin update
     try {
+      if (!req.auth) {
+        return res.status(401).json({ error: 'You must be logged in!' });
+      }
+
       const userId = req.userId;
       const update = req.body;
 
@@ -174,9 +178,29 @@ router.put(
         const saltRounds = parseInt(config.get('auth.saltRounds'));
         update.password = await bcrypt.hash(update.password, saltRounds);
       }
+      if (Object.keys(update).length > 0) {
+        update.lastUpdatedOn = new Date();
+        update.lastUpdatedBy = {
+          _id: req.auth._id,
+          email: req.auth.email,
+          fullName: req.auth.fullName,
+          role: req.auth.role,
+        };
+      }
 
       const dbResult = await updateUser(userId, update);
       debug('update result:', dbResult);
+
+      const edit = {
+        timestamp: new Date(),
+        op: 'update',
+        col: 'users',
+        target: { userId },
+        update,
+        auth: req.auth,
+      };
+      await saveEdit(edit);
+      debug('edit saved');
 
       if (dbResult.matchedCount > 0) {
         res.json({ message: 'User Updated!', userId });
