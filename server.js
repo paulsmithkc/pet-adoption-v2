@@ -4,6 +4,10 @@ const express = require('express');
 const { nanoid } = require('nanoid');
 const config = require('config');
 const dbModule = require('./database');
+const helmet = require('helmet');
+const cors = require('cors');
+const compression = require('compression');
+const morgan = require('morgan');
 
 if (!config.get('db.url')) {
   throw new Error('db.url not defined!');
@@ -44,6 +48,17 @@ Joi.objectId = () => {
 
 // construct express app
 const app = express();
+if (config.get('env') === 'production') {
+  app.use(helmet());
+  app.use(compression());
+}
+if (config.get('morgan.enabled') === true || 
+    config.get('morgan.enabled') === 'true') {
+  const morganFormat = config.get('morgan.format');
+  app.use(morgan(morganFormat));
+}
+
+app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(require('cookie-parser')());

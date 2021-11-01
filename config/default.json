@@ -1,4 +1,10 @@
 {
+  "debug": "",
+  "env": "development",
+  "morgan": {
+    "enabled": true,
+    "format": "tiny"
+  },
   "http": {
     "host": "localhost", 
     "port": 5000

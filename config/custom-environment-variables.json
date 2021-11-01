@@ -1,4 +1,10 @@
 {
+  "debug": "DEBUG",
+  "env": "NODE_ENV",
+  "morgan": {
+    "enabled": "MORGAN_ENABLED",
+    "format": "MORGAN_FORMAT"
+  },
   "http": {
     "host": "HOSTNAME", 
     "port": "PORT"
