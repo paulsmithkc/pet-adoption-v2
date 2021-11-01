@@ -6,6 +6,8 @@ const jwt = require('jsonwebtoken');
 const config = require('config');
 const validBody = require('../../middleware/validBody');
 const validId = require('../../middleware/validId');
+const isLoggedIn = require('../../middleware/isLoggedIn');
+const hasPermission = require('../../middleware/hasPermission');
 
 const {
   newId,
@@ -25,9 +27,22 @@ const loginSchema = Joi.object({
   email: Joi.string().trim().lowercase().email().required(),
   password: Joi.string().trim().min(8).required(),
 });
-const updateSchema = Joi.object({
+
+const roleSchema = Joi.string().valid(
+  'admin',
+  'manager',
+  'employee',
+  'customer'
+);
+const updateSelfSchema = Joi.object({
   password: Joi.string().trim().min(8),
   fullName: Joi.string().trim().min(1),
+  role: Joi.alternatives().try(roleSchema, Joi.array().items(roleSchema)),
+});
+const updateAnySchema = Joi.object({
+  password: Joi.string().trim().min(8),
+  fullName: Joi.string().trim().min(1),
+  role: Joi.alternatives().try(roleSchema, Joi.array().items(roleSchema)),
 });
 
 const router = new express.Router();
@@ -116,54 +131,71 @@ router.post('/login', validBody(loginSchema), async (req, res, next) => {
     next(err);
   }
 });
-router.put('/me', validBody(updateSchema), async (req, res, next) => {
-  // self-service update
-  try {
-    if (!req.auth) {
-      return res.status(401).json({ error: 'You must be logged in!' });
-    }
+router.put(
+  '/me',
+  isLoggedIn(),
+  validBody(updateSelfSchema),
+  async (req, res, next) => {
+    // self-service update
+    try {
+      if (!req.auth) {
+        return res.status(401).json({ error: 'You must be logged in!' });
+      }
 
-    const userId = newId(req.auth._id);
-    const update = req.body;
+      const userId = newId(req.auth._id);
+      const update = req.body;
 
-    if (update.password) {
-      const saltRounds = parseInt(config.get('auth.saltRounds'));
-      update.password = await bcrypt.hash(update.password, saltRounds);
-    }
-    if (Object.keys(update).length > 0) {
-      update.lastUpdatedOn = new Date();
-      update.lastUpdatedBy = {
-        _id: req.auth._id,
-        email: req.auth.email,
-        fullName: req.auth.fullName,
-        role: req.auth.role,
+      if (update.password) {
+        const saltRounds = parseInt(config.get('auth.saltRounds'));
+        update.password = await bcrypt.hash(update.password, saltRounds);
+      }
+      if (update.role) {
+        if (!req.auth.permissions['manageUsers']) {
+          return res
+            .status(403)
+            .json({ error: 'You do not have permission to change your role!' });
+        } else if (Array.isArray(update.role)) {
+          // role is already an array
+        } else {
+          update.role = [update.role];
+        }
+      }
+      debug(update);
+      if (Object.keys(update).length > 0) {
+        update.lastUpdatedOn = new Date();
+        update.lastUpdatedBy = {
+          _id: req.auth._id,
+          email: req.auth.email,
+          fullName: req.auth.fullName,
+          role: req.auth.role,
+        };
+      }
+
+      const dbResult = await updateUser(userId, update);
+      debug('update me result:', dbResult);
+
+      const edit = {
+        timestamp: new Date(),
+        op: 'update',
+        col: 'users',
+        target: { userId },
+        update,
+        auth: req.auth,
       };
+      await saveEdit(edit);
+      debug('edit saved');
+
+      res.json({ message: 'User Updated!' });
+    } catch (err) {
+      next(err);
     }
-
-    const dbResult = await updateUser(userId, update);
-    debug('update me result:', dbResult);
-
-    const edit = {
-      timestamp: new Date(),
-      op: 'update',
-      col: 'users',
-      target: { userId },
-      update,
-      auth: req.auth,
-    };
-    await saveEdit(edit);
-    debug('edit saved');
-
-    res.json({ message: 'User Updated!' });
-
-  } catch (err) {
-    next(err);
   }
-});
+);
 router.put(
   '/:userId',
+  hasPermission('manageUsers'),
   validId('userId'),
-  validBody(updateSchema),
+  validBody(updateAnySchema),
   async (req, res, next) => {
     // admin update
     try {
@@ -178,6 +210,14 @@ router.put(
         const saltRounds = parseInt(config.get('auth.saltRounds'));
         update.password = await bcrypt.hash(update.password, saltRounds);
       }
+      if (update.role) {
+        if (Array.isArray(update.role)) {
+          // role is already an array
+        } else {
+          update.role = [update.role];
+        }
+      }
+      debug(update);
       if (Object.keys(update).length > 0) {
         update.lastUpdatedOn = new Date();
         update.lastUpdatedBy = {
