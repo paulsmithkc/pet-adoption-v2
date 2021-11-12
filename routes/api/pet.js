@@ -17,20 +17,13 @@ const hasPermission = require('../../middleware/hasPermission');
 // ];
 
 const newPetSchema = Joi.object({
-  species: Joi.string()
-    .trim()
-    .min(1)
-    .pattern(/^[^0-9]+$/, 'not numbers')
-    .required(),
+  species: Joi.string().trim().min(1).required(),
   name: Joi.string().trim().min(1).required(),
   age: Joi.number().integer().min(0).max(1000).required(),
   gender: Joi.string().trim().length(1).required(),
 });
 const updatePetSchema = Joi.object({
-  species: Joi.string()
-    .trim()
-    .min(1)
-    .pattern(/^[^0-9]+$/, 'not numbers'),
+  species: Joi.string().trim().min(1),
   name: Joi.string().trim().min(1),
   age: Joi.number().integer().min(0).max(1000),
   gender: Joi.string().trim().length(1),
@@ -69,16 +62,36 @@ router.get('/list', async (req, res, next) => {
     // sort stage
     let sort = { name: 1, createdDate: 1 };
     switch (sortBy) {
-      case 'species': sort = { species: 1, name: 1, createdDate: 1 }; break;
-      case 'species_desc': sort = { species: -1, name: -1, createdDate: -1 }; break;
-      case 'name': sort = { name: 1, createdDate: 1 }; break;
-      case 'name_desc': sort = { name: -1, createdDate: -1 }; break;
-      case 'age': sort = { age: 1, createdDate: 1 }; break;
-      case 'age_desc': sort = { age: -1, createdDate: -1 }; break;
-      case 'gender': sort = { gender: 1, name: 1, createdDate: 1 }; break;
-      case 'gender_desc': sort = { gender: -1, name: -1, createdDate: -1 }; break;
-      case 'newest': sort = { createdDate: -1 }; break;
-      case 'oldest': sort = { createdDate: 1 }; break;
+      case 'species':
+        sort = { species: 1, name: 1, createdDate: 1 };
+        break;
+      case 'species_desc':
+        sort = { species: -1, name: -1, createdDate: -1 };
+        break;
+      case 'name':
+        sort = { name: 1, createdDate: 1 };
+        break;
+      case 'name_desc':
+        sort = { name: -1, createdDate: -1 };
+        break;
+      case 'age':
+        sort = { age: 1, createdDate: 1 };
+        break;
+      case 'age_desc':
+        sort = { age: -1, createdDate: -1 };
+        break;
+      case 'gender':
+        sort = { gender: 1, name: 1, createdDate: 1 };
+        break;
+      case 'gender_desc':
+        sort = { gender: -1, name: -1, createdDate: -1 };
+        break;
+      case 'newest':
+        sort = { createdDate: -1 };
+        break;
+      case 'oldest':
+        sort = { createdDate: 1 };
+        break;
     }
 
     // project stage
@@ -121,18 +134,23 @@ router.get('/:petId', validId('petId'), async (req, res, next) => {
     next(err);
   }
 });
-router.put('/new', hasPermission('insertPet'), validBody(newPetSchema), async (req, res, next) => {
-  try {
-    const pet = req.body;
-    pet._id = newId();
-    debug(`insert pet`, pet);
+router.put(
+  '/new',
+  hasPermission('insertPet'),
+  validBody(newPetSchema),
+  async (req, res, next) => {
+    try {
+      const petId = newId();
+      const pet = { ...req.body, _id: petId };
+      debug(`insert pet`, pet);
 
-    await dbModule.insertOnePet(pet);
-    res.json({ message: 'Pet inserted.' });
-  } catch (err) {
-    next(err);
+      await dbModule.insertOnePet(pet);
+      res.json({ message: 'Pet inserted.', petId });
+    } catch (err) {
+      next(err);
+    }
   }
-});
+);
 router.put(
   '/:petId',
   hasPermission('updatePet'),
@@ -149,29 +167,34 @@ router.put(
         res.status(404).json({ error: `Pet ${petId} not found.` });
       } else {
         await dbModule.updateOnePet(petId, update);
-        res.json({ message: `Pet ${petId} updated.` });
+        res.json({ message: `Pet ${petId} updated.`, petId });
       }
     } catch (err) {
       next(err);
     }
   }
 );
-router.delete('/:petId', hasPermission('deletePet'), validId('petId'), async (req, res, next) => {
-  try {
-    const petId = req.petId;
-    debug(`delete pet ${petId}`);
+router.delete(
+  '/:petId',
+  hasPermission('deletePet'),
+  validId('petId'),
+  async (req, res, next) => {
+    try {
+      const petId = req.petId;
+      debug(`delete pet ${petId}`);
 
-    const pet = await dbModule.findPetById(petId);
-    if (!pet) {
-      res.status(404).json({ error: `Pet ${petId} not found.` });
-    } else {
-      await dbModule.deleteOnePet(petId);
-      res.json({ message: `Pet ${petId} deleted.` });
+      const pet = await dbModule.findPetById(petId);
+      if (!pet) {
+        res.status(404).json({ error: `Pet ${petId} not found.` });
+      } else {
+        await dbModule.deleteOnePet(petId);
+        res.json({ message: `Pet ${petId} deleted.`, petId });
+      }
+    } catch (err) {
+      next(err);
     }
-  } catch (err) {
-    next(err);
   }
-});
+);
 
 // export router
 module.exports = router;
