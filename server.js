@@ -1,9 +1,7 @@
 const debug = require('debug')('app:server');
 const debugError = require('debug')('app:error');
 const express = require('express');
-const { nanoid } = require('nanoid');
 const config = require('config');
-const dbModule = require('./database');
 const helmet = require('helmet');
 const cors = require('cors');
 const compression = require('compression');

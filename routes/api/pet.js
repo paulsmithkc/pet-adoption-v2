@@ -1,7 +1,6 @@
 const debug = require('debug')('app:routes:api:pet');
 const debugError = require('debug')('app:error');
 const express = require('express');
-const { nanoid } = require('nanoid');
 const dbModule = require('../../database');
 const { newId, connect } = require('../../database');
 const Joi = require('joi');
