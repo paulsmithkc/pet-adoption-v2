@@ -7,6 +7,8 @@ const { newId, connect } = require('../../database');
 const Joi = require('joi');
 const validId = require('../../middleware/validId');
 const validBody = require('../../middleware/validBody');
+const isLoggedIn = require('../../middleware/isLoggedIn');
+const hasPermission = require('../../middleware/hasPermission');
 
 // const petsArray = [
 //   { _id: '1', name: 'Fido', createdDate: new Date() },
@@ -119,7 +121,7 @@ router.get('/:petId', validId('petId'), async (req, res, next) => {
     next(err);
   }
 });
-router.put('/new', validBody(newPetSchema), async (req, res, next) => {
+router.put('/new', hasPermission('insertPet'), validBody(newPetSchema), async (req, res, next) => {
   try {
     const pet = req.body;
     pet._id = newId();
@@ -133,6 +135,7 @@ router.put('/new', validBody(newPetSchema), async (req, res, next) => {
 });
 router.put(
   '/:petId',
+  hasPermission('updatePet'),
   validId('petId'),
   validBody(updatePetSchema),
   async (req, res, next) => {
@@ -153,7 +156,7 @@ router.put(
     }
   }
 );
-router.delete('/:petId', validId('petId'), async (req, res, next) => {
+router.delete('/:petId', hasPermission('deletePet'), validId('petId'), async (req, res, next) => {
   try {
     const petId = req.petId;
     debug(`delete pet ${petId}`);

@@ -10,6 +10,7 @@ const auth = () => {
     const authCookie = req.cookies.authToken;
 
     if (authHeader) {
+      debug('authHeader', authHeader);
       const [authType, authToken] = authHeader.split(' ', 2);
       if (authType === 'Bearer' && authToken) {
         try {
@@ -17,8 +18,9 @@ const auth = () => {
         } catch (err) {
           debug('invalid token');
         }
-      }    
+      }
     } else if (authCookie) {
+      debug('authCookie', authCookie);
       try {
         req.auth = jwt.verify(authCookie, authSecret);
         const cookieOptions = {
@@ -28,7 +30,7 @@ const auth = () => {
         res.cookie('authToken', authToken, cookieOptions);
       } catch (err) {
         debug('invalid token');
-      }    
+      }
     }
 
     next();
