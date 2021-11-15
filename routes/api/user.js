@@ -1,4 +1,6 @@
 const debug = require('debug')('app:api:user');
+const debugError = require('debug')('app:error');
+const _ = require('lodash');
 const express = require('express');
 const Joi = require('joi');
 const bcrypt = require('bcrypt');
@@ -11,10 +13,11 @@ const hasPermission = require('../../middleware/hasPermission');
 
 const {
   newId,
-  insertUser,
-  updateUser,
-  getUserById,
-  getUserByEmail,
+  connect,
+  insertOneUser,
+  updateOneUser,
+  findUserById,
+  findUserByEmail,
   saveEdit,
   findRoleByName,
 } = require('../../database');
@@ -101,18 +104,19 @@ router.post('/register', validBody(registerSchema), async (req, res, next) => {
       _id: newId(),
       createdDate: new Date(),
       role: 'customer',
+      createdOn: new Date(),
     };
 
     // hash password
     const saltRounds = parseInt(config.get('auth.saltRounds'));
     user.password = await bcrypt.hash(user.password, saltRounds);
 
-    if (await getUserByEmail(user.email)) {
+    if (await findUserByEmail(user.email)) {
       res
         .status(400)
         .json({ error: `Email "${user.email}" is already in use!` });
     } else {
-      const dbResult = await insertUser(user);
+      const dbResult = await insertOneUser(user);
       debug('register result:', dbResult);
 
       // issue new token
@@ -132,7 +136,7 @@ router.post('/register', validBody(registerSchema), async (req, res, next) => {
 router.post('/login', validBody(loginSchema), async (req, res, next) => {
   try {
     const login = req.body;
-    const user = await getUserByEmail(login.email);
+    const user = await findUserByEmail(login.email);
     if (user && (await bcrypt.compare(login.password, user.password))) {
       // issue new token
       const authToken = await issueAuthToken(user);
@@ -157,10 +161,6 @@ router.put(
   async (req, res, next) => {
     // self-service update
     try {
-      if (!req.auth) {
-        return res.status(401).json({ error: 'You must be logged in!' });
-      }
-
       const userId = newId(req.auth._id);
       const update = req.body;
 
@@ -179,20 +179,23 @@ router.put(
           update.role = [update.role];
         }
       }
-      debug(update);
-      if (Object.keys(update).length > 0) {
-        update.lastUpdatedOn = new Date();
-        update.lastUpdatedBy = {
-          _id: req.auth._id,
-          email: req.auth.email,
-          fullName: req.auth.fullName,
-          role: req.auth.role,
-        };
+      if (!_.isEmpty(update)) {
+        update.lastUpdatedBy = _.pick(
+          req.auth,
+          '_id',
+          'email',
+          'fullName',
+          'role'
+        );
+        update.lastUpdated = new Date();
       }
+      debug('update me:', update);
 
-      const dbResult = await updateUser(userId, update);
+      // update user document
+      const dbResult = await updateOneUser(userId, update);
       debug('update me result:', dbResult);
 
+      // save edit for audit trail
       const edit = {
         timestamp: new Date(),
         op: 'update',
@@ -208,7 +211,12 @@ router.put(
       const authToken = await issueAuthToken({ ...req.auth, ...update });
       setAuthCookie(res, authToken);
 
-      res.json({ message: 'User Updated!' });
+      // send response
+      if (updateResult.matchedCount > 0) {
+        res.json({ message: 'User Updated!', userId, token: authToken });
+      } else {
+        res.status(404).json({ error: 'User not found!' });
+      }
     } catch (err) {
       next(err);
     }
@@ -222,10 +230,6 @@ router.put(
   async (req, res, next) => {
     // admin update
     try {
-      if (!req.auth) {
-        return res.status(401).json({ error: 'You must be logged in!' });
-      }
-
       const userId = req.userId;
       const update = req.body;
 
@@ -240,20 +244,23 @@ router.put(
           update.role = [update.role];
         }
       }
-      debug(update);
-      if (Object.keys(update).length > 0) {
-        update.lastUpdatedOn = new Date();
-        update.lastUpdatedBy = {
-          _id: req.auth._id,
-          email: req.auth.email,
-          fullName: req.auth.fullName,
-          role: req.auth.role,
-        };
+      if (!_.isEmpty(update)) {
+        update.lastUpdatedBy = _.pick(
+          req.auth,
+          '_id',
+          'email',
+          'fullName',
+          'role'
+        );
+        update.lastUpdated = new Date();
       }
+      debug('update:', update);
 
-      const dbResult = await updateUser(userId, update);
-      debug('update result:', dbResult);
+      // update user document
+      const updateResult = await updateOneUser(userId, update);
+      debug('update result:', updateResult);
 
+      // save edit for audit trail
       const edit = {
         timestamp: new Date(),
         op: 'update',
@@ -266,13 +273,15 @@ router.put(
       debug('edit saved');
 
       // issue new token, when updating self
+      let authToken;
       if (userId.equals(req.auth._id)) {
-        const authToken = await issueAuthToken({ ...req.auth, ...update });
+        authToken = await issueAuthToken({ ...req.auth, ...update });
         setAuthCookie(res, authToken);
       }
 
-      if (dbResult.matchedCount > 0) {
-        res.json({ message: 'User Updated!', userId });
+      // send response
+      if (updateResult.matchedCount > 0) {
+        res.json({ message: 'User Updated!', userId, token: authToken });
       } else {
         res.status(404).json({ error: 'User not found!' });
       }

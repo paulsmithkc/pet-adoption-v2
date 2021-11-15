@@ -41,51 +41,41 @@ async function findPetById(petId) {
 
 async function insertOnePet(pet) {
   const db = await connect();
-  await db.collection('pets').insertOne({
-    ...pet,
-    createdDate: new Date(),
-  });
+  return await db.collection('pets').insertOne(pet);
 }
 
 async function updateOnePet(petId, update) {
   const db = await connect();
-  await db.collection('pets').updateOne(
-    { _id: { $eq: petId } },
-    {
-      $set: {
-        ...update,
-        lastUpdated: new Date(),
-      },
-    }
-  );
+  return await db
+    .collection('pets')
+    .updateOne({ _id: { $eq: petId } }, { $set: { ...update } });
 }
 
 async function deleteOnePet(petId) {
   const db = await connect();
-  await db.collection('pets').deleteOne({ _id: { $eq: petId } });
+  return await db.collection('pets').deleteOne({ _id: { $eq: petId } });
 }
 
-async function insertUser(user) {
+async function insertOneUser(user) {
   const db = await connect();
   return await db.collection('users').insertOne(user);
 }
 
-async function updateUser(userId, update) {
+async function updateOneUser(userId, update) {
   const db = await connect();
-  return await db.collection('users').updateOne(
-    { _id: { $eq: userId }}, 
-    { $set: { ...update } }
-  );
+  return await db
+    .collection('users')
+    .updateOne({ _id: { $eq: userId } }, { $set: { ...update } });
 }
 
-async function getUserById(userId) {
+async function findUserById(userId) {
   const db = await connect();
-  return await db.collection('users').findOne({ _id: {$eq: userId} });
+  return await db.collection('users').findOne({ _id: { $eq: userId } });
 }
 
-async function getUserByEmail(email) {
+async function findUserByEmail(email) {
   const db = await connect();
-  return await db.collection('users').findOne({ email: {$eq: email} });
+  return await db.collection('users').findOne({ email: { $eq: email } });
 }
 
 async function saveEdit(edit) {
@@ -95,24 +85,28 @@ async function saveEdit(edit) {
 
 async function findRoleByName(roleName) {
   const db = await connect();
-  return await db.collection('roles').findOne({ name: {$eq: roleName} });
+  return await db.collection('roles').findOne({ name: { $eq: roleName } });
 }
 
 ping();
 
 module.exports = {
+  // utils
   newId,
   connect,
   ping,
+  // pets
   findAllPets,
   findPetById,
   insertOnePet,
   updateOnePet,
   deleteOnePet,
-  insertUser,
-  updateUser,
-  getUserById,
-  getUserByEmail,
+  // users
+  findUserById,
+  findUserByEmail,
+  insertOneUser,
+  updateOneUser,
+  // other
   saveEdit,
   findRoleByName,
 };

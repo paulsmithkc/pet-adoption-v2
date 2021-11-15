@@ -1,13 +1,24 @@
 const debug = require('debug')('app:routes:api:pet');
 const debugError = require('debug')('app:error');
+const _ = require('lodash');
 const express = require('express');
-const dbModule = require('../../database');
-const { newId, connect } = require('../../database');
+// const dbModule = require('../../database');
 const Joi = require('joi');
 const validId = require('../../middleware/validId');
 const validBody = require('../../middleware/validBody');
 const isLoggedIn = require('../../middleware/isLoggedIn');
 const hasPermission = require('../../middleware/hasPermission');
+
+const {
+  newId,
+  connect,
+  findAllPets,
+  findPetById,
+  insertOnePet,
+  updateOnePet,
+  deleteOnePet,
+  saveEdit,
+} = require('../../database');
 
 // const petsArray = [
 //   { _id: '1', name: 'Fido', createdDate: new Date() },
@@ -123,7 +134,7 @@ router.get('/list', async (req, res, next) => {
 router.get('/:petId', validId('petId'), async (req, res, next) => {
   try {
     const petId = req.petId;
-    const pet = await dbModule.findPetById(petId);
+    const pet = await findPetById(petId);
     if (!pet) {
       res.status(404).json({ error: `Pet ${petId} not found.` });
     } else {
@@ -140,10 +151,31 @@ router.put(
   async (req, res, next) => {
     try {
       const petId = newId();
-      const pet = { ...req.body, _id: petId };
-      debug(`insert pet`, pet);
+      const pet = {
+        ...req.body,
+        _id: petId,
+        createdBy: _.pick(req.auth, '_id', 'email', 'fullName', 'role'),
+        createdOn: new Date(),
+      };
+      debug(`insert pet ${petId}:`, pet);
 
-      await dbModule.insertOnePet(pet);
+      // insert pet document
+      const insertResult = await insertOnePet(pet);
+      debug('insert result:', insertResult);
+
+      // save edit for audit trail
+      const edit = {
+        timestamp: new Date(),
+        op: 'insert',
+        col: 'pets',
+        target: { petId },
+        update: pet,
+        auth: req.auth,
+      };
+      await saveEdit(edit);
+      debug('edit saved');
+
+      // send response
       res.json({ message: 'Pet inserted.', petId });
     } catch (err) {
       next(err);
@@ -159,14 +191,40 @@ router.put(
     try {
       const petId = req.petId;
       const update = req.body;
-      debug(`update pet ${petId}`, update);
 
-      const pet = await dbModule.findPetById(petId);
-      if (!pet) {
-        res.status(404).json({ error: `Pet ${petId} not found.` });
+      if (!_.isEmpty(update)) {
+        update.lastUpdatedBy = _.pick(
+          req.auth,
+          '_id',
+          'email',
+          'fullName',
+          'role'
+        );
+        update.lastUpdated = new Date();
+      }
+      debug(`update pet ${petId}:`, update);
+
+      // update pet document
+      const updateResult = await updateOnePet(petId, update);
+      debug('update result:', updateResult);
+
+      // save edit for audit trail
+      const edit = {
+        timestamp: new Date(),
+        op: 'update',
+        col: 'pets',
+        target: { petId },
+        update,
+        auth: req.auth,
+      };
+      await saveEdit(edit);
+      debug('edit saved');
+
+      // send response
+      if (updateResult.matchedCount > 0) {
+        res.json({ message: 'Pet Updated!', petId });
       } else {
-        await dbModule.updateOnePet(petId, update);
-        res.json({ message: `Pet ${petId} updated.`, petId });
+        res.status(404).json({ error: 'Pet not found!' });
       }
     } catch (err) {
       next(err);
@@ -182,12 +240,26 @@ router.delete(
       const petId = req.petId;
       debug(`delete pet ${petId}`);
 
-      const pet = await dbModule.findPetById(petId);
-      if (!pet) {
-        res.status(404).json({ error: `Pet ${petId} not found.` });
+      // delete pet document
+      const deleteResult = await deleteOnePet(petId);
+      debug('delete result:', deleteResult);
+
+      // save edit for audit trail
+      const edit = {
+        timestamp: new Date(),
+        op: 'delete',
+        col: 'pets',
+        target: { petId },
+        auth: req.auth,
+      };
+      await saveEdit(edit);
+      debug('edit saved');
+
+      // send response
+      if (deleteResult.matchedCount > 0) {
+        res.json({ message: 'Pet Deleted!', petId });
       } else {
-        await dbModule.deleteOnePet(petId);
-        res.json({ message: `Pet ${petId} deleted.`, petId });
+        res.status(404).json({ error: 'Pet not found!' });
       }
     } catch (err) {
       next(err);
