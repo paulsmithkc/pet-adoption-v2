@@ -1,0 +1,47 @@
+[
+  {
+    "_id": {
+      "$oid": "61929f823555e49e5a01d3c6"
+    },
+    "name": "Fido",
+    "species": "Dog",
+    "gender": "M",
+    "age": 6,
+    "createdBy": {
+      "_id": "618bf969c65fa867da2256ab",
+      "email": "admin@example.com",
+      "fullName": "Paul Smith",
+      "role": "admin"
+    },
+    "createdOn": {
+      "$date": "2021-11-15T17:57:22.843Z"
+    },
+    "lastUpdated": {
+      "$date": "2021-11-15T18:12:15.909Z"
+    },
+    "lastUpdatedBy": {
+      "_id": "618bf969c65fa867da2256ab",
+      "email": "admin@example.com",
+      "fullName": "Paul Smith",
+      "role": "admin"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "61929f993555e49e5a01d3c8"
+    },
+    "name": "Fluffy",
+    "species": "Cat",
+    "gender": "F",
+    "age": 8,
+    "createdBy": {
+      "_id": "618bf969c65fa867da2256ab",
+      "email": "admin@example.com",
+      "fullName": "Paul Smith",
+      "role": "admin"
+    },
+    "createdOn": {
+      "$date": "2021-11-15T17:57:45.068Z"
+    }
+  }
+]

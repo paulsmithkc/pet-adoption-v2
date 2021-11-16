@@ -105,7 +105,16 @@ router.get('/list', async (req, res, next) => {
     }
 
     // project stage
-    const project = { species: 1, name: 1, age: 1, gender: 1 };
+    const project = {
+      species: 1,
+      name: 1,
+      age: 1,
+      gender: 1,
+      createdBy: 1,
+      createdOn: 1,
+      lastUpdatedBy: 1,
+      lastUpdated: 1,
+    };
 
     // skip & limit stages
     pageNumber = parseInt(pageNumber) || 1;
@@ -256,11 +265,7 @@ router.delete(
       debug('edit saved');
 
       // send response
-      if (deleteResult.matchedCount > 0) {
-        res.json({ message: 'Pet Deleted!', petId });
-      } else {
-        res.status(404).json({ error: 'Pet not found!' });
-      }
+      res.json({ message: 'Pet Deleted!', petId });
     } catch (err) {
       next(err);
     }

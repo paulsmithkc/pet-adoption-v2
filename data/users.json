@@ -1,0 +1,26 @@
+[
+  {
+    "_id": {
+      "$oid": "618bf0e6c65fa867da2256a9"
+    },
+    "email": "customer@example.com",
+    "password": "$2b$10$MOd9mXMYzyRHCbGonLFdKuHFr/ruOI85TG2lIFWXiC/sSeBK4le1K",
+    "fullName": "Paul Smith",
+    "createdDate": {
+      "$date": "2021-11-10T16:18:46.429Z"
+    },
+    "role": "customer"
+  },
+  {
+    "_id": {
+      "$oid": "618bf969c65fa867da2256ab"
+    },
+    "email": "admin@example.com",
+    "password": "$2b$10$96zpyivLWnD5IoAjcGlOuOMOYk5vuIsa1jK2FI8vpMvMxsdiE4oze",
+    "fullName": "Paul Smith",
+    "createdDate": {
+      "$date": "2021-11-10T16:55:05.407Z"
+    },
+    "role": "admin"
+  }
+]

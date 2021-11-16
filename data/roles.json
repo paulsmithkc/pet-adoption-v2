@@ -1,0 +1,15 @@
+[
+  {
+    "name": "admin",
+    "permissions": {
+      "manageUsers": true,
+      "insertPet": true,
+      "updatePet": true,
+      "deletePet": true
+    }
+  },
+  {
+    "name": "customer",
+    "permissions": {}
+  }
+]
