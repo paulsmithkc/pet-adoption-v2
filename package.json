@@ -18,6 +18,9 @@
     "url": "https://github.com/paulsmithkc/pet-adoption/issues"
   },
   "homepage": "https://github.com/paulsmithkc/pet-adoption#readme",
+  "engines": {
+    "node": "16.9.1"
+  },
   "dependencies": {
     "bcrypt": "^5.0.1",
     "compression": "^1.7.4",
