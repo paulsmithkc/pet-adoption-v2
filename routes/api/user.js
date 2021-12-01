@@ -172,10 +172,8 @@ router.put(
         if (!req.auth.permissions['manageUsers']) {
           return res
             .status(403)
-            .json({ error: 'You do not have permission to change your role!' });
-        } else if (Array.isArray(update.role)) {
-          // role is already an array
-        } else {
+            .json({ error: 'You do not have permission to change roles!' });
+        } else if (!Array.isArray(update.role)) {
           update.role = [update.role];
         }
       }
@@ -238,9 +236,11 @@ router.put(
         update.password = await bcrypt.hash(update.password, saltRounds);
       }
       if (update.role) {
-        if (Array.isArray(update.role)) {
-          // role is already an array
-        } else {
+        if (!req.auth.permissions['manageUsers']) {
+          return res
+            .status(403)
+            .json({ error: 'You do not have permission to change roles!' });
+        } else if (!Array.isArray(update.role)) {
           update.role = [update.role];
         }
       }
